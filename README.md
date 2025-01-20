@@ -18,5 +18,6 @@ Scripts and two datasets to validate distance measured from camera traps using c
 ### Shared data and code for both datasets
 
 1. Speed_seq_data.csv - Movement digitisation data to generate speed estimates, used in process of validating both datasets.
-2. CTtracking_err.r - Package containing functions to analyse the camera calibration dataset and estimate radius and speed with radius_err and speed_err.
+2. camera_deployment_validation_.csv - distance data used in both sequences
+
 
