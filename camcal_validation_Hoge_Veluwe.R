@@ -20,7 +20,7 @@ devtools::source_url("https://raw.githubusercontent.com/nilanjanchatterjee/camca
 ######################### Load in the required data  #########################
 predval <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/camera_deployment_validation_.csv")
 Hoge <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HogeVeluwe/HogeVeluweDigidat.csv")
-posdat_mov <-read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/posdat_mov.csv")
+posdat_mov <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/Speed_seq_data.csv")
 
 
 
