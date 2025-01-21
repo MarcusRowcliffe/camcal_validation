@@ -295,7 +295,7 @@ pixdiff_updated <- seq.data(posdat_mov_updated)$pixdiff
 
 #### Option 2: Read in pre-simulated data to save time
 # read in speed err
-hh_speeds_err_500_df_alt <- read.csv(
+hh_speeds_err_500_df <- read.csv(
   "https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/speeds_err_hh.csv")
 
 speeds_err_500_updated <- t(as.matrix(hh_speeds_err_500_df))
