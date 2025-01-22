@@ -99,7 +99,7 @@ oneRepPredictions <- function(dat, dep) {
   
   # Predict positions for the test set
   dat[!i, ] %>%
-    rename(x = xg, y = yg) %>%
+    dplyr::rename(x = xg, y = yg) %>%
     predict.pos(dmod, "folder")
 }
 
