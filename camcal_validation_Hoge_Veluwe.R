@@ -32,11 +32,11 @@ posdat_mov <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camc
 # in these measurements affect detection distances.
 # 
 #    Approach:
-     
-      # Calibration: Uses known distances (from poles in the camera's field of view) to build a model linking image pixels to real-world distances.
-      # Simulation: Generates random animal positions and calculates "true" distances, then adds errors based on observed biases.
-      # Validation: Compares the performance of different detection models (e.g., half-normal and hazard rate) to understand which handles errors better.
-      # Analysis: Tests how sample size and terrain type (flat vs sloping) influence the reliability of distance estimates.
+
+# Calibration: Uses known distances (from poles in the camera's field of view) to build a model linking image pixels to real-world distances.
+# Simulation: Generates random animal positions and calculates "true" distances, then adds errors based on observed biases.
+# Validation: Compares the performance of different detection models (e.g., half-normal and hazard rate) to understand which handles errors better.
+# Analysis: Tests how sample size and terrain type (flat vs sloping) influence the reliability of distance estimates.
 
 
 
@@ -231,7 +231,7 @@ sim_rep <- function(points, b, maxr, mnx, mny, mnerr, sdx, sdy, sderr) {
 # Define the column names for the output
 column_names <- c("r_hn_true", "r_hr_true", "r_hn_err", "r_hr_err",
                   "diff_hn", "diff_hr", "aic_hn_true", "aic_hr_true",
-                "aic_hn_err", "aic_hr_err")
+                  "aic_hn_err", "aic_hr_err")
 
 
 #####################################################################
@@ -295,13 +295,12 @@ mean(hoge_50$aic_hr_err < hoge_50$aic_hn_err)
 ######################### Review the results #################################
 
 # Comparing results between Hampstead Heath data and Hoge Veluwe data
-flat50 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/flat50.csv")
+flat50 <- read_csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/flat50.csv")
 hoge_50
 
 # View summary of results
 summary(flat50)
 summary(hoge_50)
-
 
 # Combine datasets for plotting
 combined_results <- data.frame(
@@ -313,7 +312,8 @@ combined_results <- data.frame(
   Dataset = rep(c("HH", "NLD"), each = nrow(flat50), times = 4)
 )
 
-# Create the boxplot
+## Plot of effective radius estimates
+
 ggplot(combined_results, aes(x = interaction(Method, Dataset), y = Radius, fill = Dataset)) +
   geom_boxplot() +
   scale_fill_manual(values = c("orange", "skyblue")) +
@@ -328,9 +328,52 @@ ggplot(combined_results, aes(x = interaction(Method, Dataset), y = Radius, fill 
 
 
 
+# Combine true and error data for direct comparison
+focused_results <- data.frame(
+  Radius = c(flat50$r_hn_true, hoge_50$r_hn_true, 
+             flat50$r_hn_err, hoge_50$r_hn_err),
+  Type = rep(c("True", "Error"), each = nrow(flat50) + nrow(hoge_50)),
+  Dataset = rep(c("HH", "NLD"), each = nrow(flat50), times = 2)
+)
+
+# True vs. Error comparison
+ggplot(focused_results, aes(x = interaction(Type, Dataset), y = Radius, fill = Dataset)) +
+  geom_boxplot(outlier.size = 1.5, alpha = 0.8, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("HH" = "orange", "NLD" = "skyblue")) +
+  labs(
+    title = "Comparison of Effective Radius Estimates (True vs. Error)",
+    x = "Estimate Type and Dataset",
+    y = "Effective Radius (m)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 16, hjust = 0.5),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ) +
+  guides(fill = guide_legend(title = "Dataset"))
 
 
 
+
+### Results:
+
+# Dutch Calibration Shows Higher Effective Radii Estimates: 
+  # Mean True Radii (HN): Dutch 11.01 m, HH 7.62 m; Mean True Radii (HR): Dutch 10.19 m, HH 6.64 m.
+
+# Dutch Calibration Has Lower Bias and Deviation: 
+  # Mean Bias (HN): Dutch +0.06 m, HH +0.30 m; Mean Bias (HR): Dutch +0.07 m, HH +0.57 m.
+
+# HH Calibration Underestimates Detection Distances: 
+  # HH calibration yields smaller true radii (HN range: 5.33–11.90 m vs. Dutch 7.34–15.75 m).
+
+# Dutch Calibration Has Better Model Fit (Lower AIC): 
+  # Mean AIC (HN True): Dutch 143.89, HH 228.0; Mean AIC (HR True): Dutch 141.69, HH 215.2.
+
+# Hazard Rate Outperforms Half Normal Across Both Methods: 
+  # Mean Deviation (HR): Dutch +0.07 m, HH +0.57 m; HR has lower AIC and smaller bias.
 
 
 
@@ -486,6 +529,7 @@ print(summary_stats)
 
 # Results very similar between Dutch and HH datasets. The mean simulated speeds are close to the true speed for both approaches & 
 # the differences seem very marginal. 
+
 
 
 
