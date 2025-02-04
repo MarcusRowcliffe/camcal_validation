@@ -14,6 +14,7 @@ invisible(lapply(packages, install_and_load))
 
 devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/distanceDF/master/distancedf.r")
 devtools::source_url("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/CTtracking_err.r")
+source("hmean.r")
 
 
 ##############################################################################
@@ -322,7 +323,6 @@ abline(h = truespeed_updated, lwd = 2, col = "red")
 # ############################################################### ORIGINAL - Speed simulation function ####################################################################
 
 
-
 # Here, the previous (original) speed simulation function has been included (but commented out) for reference. 
 # As a reminder, here, the variance is calculated at two levels: 
 # deployment (deployment-level errors) and observational (observation-level errors).
@@ -510,6 +510,36 @@ print(summary_updated <- summary(lm_updated))
 #### Results of amending the error propogation method:
 # --> The mean error is lower in the updated method (1.73 vs. 2.44), and the median error shows a substantial reduction (0.11 vs. 0.86).
 # --> IQR is significantly smaller in the updated method. 
+
+
+
+
+
+# ###############################################################################################################################################
+#                           Relative speed & speed error plot 
+# ###############################################################################################################################################
+
+
+# Original error propagation method
+plot1 <- ggplot(data = data.frame(speed = speeds_err_500), aes(x = "500_rep", y = speed)) +
+  geom_boxplot(fill = "skyblue") +
+  geom_hline(yintercept = truespeed, linetype = "dashed", colour = "red", size = 1) +
+  ylim(c(min(truespeed, 0.01), max(speeds_err_500, na.rm = TRUE))) +
+  labs(x = "", y = "Estimated speed (m/s)", title = "Original Method") +
+  theme_minimal()
+
+# Updated error propagation method
+plot2 <- ggplot(data = data.frame(speed = speeds_err_500_updated), aes(x = "500_rep_updated", y = speed)) +
+  geom_boxplot(fill = "orange") +
+  geom_hline(yintercept = truespeed_updated, linetype = "dashed", colour = "red", size = 1) +
+  labs(x = "", y = "Estimated speed (m/s)", title = "Updated Method") +
+  theme_minimal()
+
+# arrange plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+
+
 
 
 
