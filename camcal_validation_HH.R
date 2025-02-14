@@ -24,7 +24,33 @@ sitecal <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_
 modcoef <- read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/pole_11_mod_param.csv")
 posdat_mov <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/Speed_seq_data.csv")
 
+# Diff and distance in predval currently in cm. Update for comparison with other methods later in the process.
+predval$distance <- predval$distance/100
+predval$diff <- predval$diff/100
 
+
+##############################################################################
+################## Summary stats of distance predictions #####################
+# Calculate mean error
+mean_error <- mean(predval$radius - predval$distance, na.rm = TRUE)
+
+# standard deviation 
+sd_error <- sd(predval$radius - predval$distance, na.rm = TRUE)
+
+# Calculate error range
+error_range <- range(predval$radius - predval$distance, na.rm = TRUE)
+
+# R-squared
+r_squared <- summary(lm(predval$radius ~ predval$distance))$r.squared
+
+# linear regression to check trend
+lm_hh <- lm(diff ~ distance, data = predval)
+summary(lm_hh)
+
+
+
+# # ##############################################################################################################################################################
+# # ############################################################### Simulating distance error  ####################################################################
 
 #########################################################################################
 ################### Simulation for Effective radius estimation
@@ -84,10 +110,11 @@ sdx <- sd(sitecal$x)
 sdy <- sd(sitecal$y)
 
 # Calculate error, mean error and sd of error. 
-err <- predval$radius - predval$distance/100
+err <- predval$radius - predval$distance
 mnerr <- mean(err, na.rm=T)
 sderr <- sd(err, na.rm=T)
 
+print(mnerr)
 
 # Model parameters from the non-linear least square and surface details of the 10 camera locations
 bflat <- subset(modcoef, location_type=="flat")[, 2:4] %>%
@@ -115,13 +142,13 @@ reps <- 500
 # flat50 <- data.frame(t(pbreplicate(reps, suppressMessages(
 #   sim_rep(points=50, b=bflat, maxr=25, mnx, mny, mnerr, sdx, sdy, sderr)
 # ))))
-# colnames(flat50) <- column_names  
+# colnames(flat50) <- column_names
 
 # Flat100
-# flat100 <- data.frame(t(pbreplicate(reps, suppressMessages( 
+# flat100 <- data.frame(t(pbreplicate(reps, suppressMessages(
 #   sim_rep(points=100, b=bflat, maxr=25, mnx, mny, mnerr, sdx, sdy, sderr)
 # ))))
-# colnames(flat100) <- column_names  
+# colnames(flat100) <- column_names
 
 # Flat200
 # new_flat200 <- data.frame(t(pbreplicate(reps, suppressMessages(
@@ -143,13 +170,26 @@ boxplot(flat50$r_hn_true, flat50$r_hn_err, flat50$r_hr_true, flat50$r_hr_err,
         ylab="Effective radius (m)", main="Flat ground, 50 points")
 legend("topright", c("Half normal", "Hazard rate"), fill=c("orange", "skyblue"))
 
+
+
 boxplot(flat50$diff_hn, flat100$diff_hn, flat200$diff_hn, 
         flat50$diff_hr, flat100$diff_hr, flat200$diff_hr,
         names=rep(c(50,100,200), 2),
         col=rep(c("orange", "skyblue"), each=3),
-        xlab="Points", ylab="Error (m)", main="Flat ground")
-legend("topleft", c("Half normal", "Hazard rate"), fill=c("orange", "skyblue"))
+        xlab="Points", ylab="Error (m)", main="Realistic scenario: Flat ground",
+        cex.axis=2,       # Increases axis text size
+        cex.lab=2,
+        cex.main=2) 
+
+legend("topleft", c("Half normal", "Hazard rate"), 
+       fill=c("orange", "skyblue"), 
+              # Increases legend text size
+       title="Detection Function")    
+
 lines(c(0,7), rep(mnerr,2), col="magenta")
+
+
+
 
 
 # Calculate the proportion of simulations where HR has a lower AIC than HN:
@@ -209,13 +249,42 @@ boxplot(slop50$r_hn_true, slop50$r_hn_err, slop50$r_hr_true, slop50$r_hr_err,
         ylab="Effective radius (m)", main="Sloping ground")
 legend("topright", c("Half normal", "Hazard rate"), fill=c("orange", "skyblue"))
 
+
+
+par(mfrow = c(1, 2), mar = c(5, 7, 4, 2))  # Increases left margin
+
+# Plot 1: Flat ground
+boxplot(flat50$diff_hn, flat100$diff_hn, flat200$diff_hn, 
+        flat50$diff_hr, flat100$diff_hr, flat200$diff_hr,
+        names=rep(c(50,100,200), 2),
+        col=rep(c("#E9967A", "#8FBC8F"), each=3),  # Updated colours
+        xlab="Points", ylab="Error (m)", main="Realistic scenario: Flat ground",
+        cex.axis=2,       
+        cex.lab=2,
+        cex.main=2)  
+
+legend("topleft", c("Half normal", "Hazard rate"), 
+       fill=c("#E9967A", "#8FBC8F"),  # Updated colours
+       title="Detection Function",
+       box.lty=0)
+
+lines(c(0,7), rep(mnerr,2), col="magenta")
+
+# Plot 2: Sloping ground
 boxplot(slop50$diff_hn, slop100$diff_hn, slop200$diff_hn, 
         slop50$diff_hr, slop100$diff_hr, slop200$diff_hr,
         names=rep(c(50,100,200), 2),
-        col=rep(c("orange", "skyblue"), each=3),
-        xlab="Points", ylab="Error (m)", main="Sloping ground")
-legend("topleft", c("Half normal", "Hazard rate"), fill=c("orange", "skyblue"))
+        col=rep(c("#E9967A", "#8FBC8F"), each=3),  # Updated colours
+        xlab="Points", ylab="Error (m)", main="Realistic scenario: Sloping ground",
+        cex.axis=2,       
+        cex.lab=2,
+        cex.main=2)  
+
 lines(c(0,7), rep(mnerr,2), col="magenta")
+
+# Reset to default
+par(mfrow = c(1, 1))
+
 
 
 
@@ -240,7 +309,7 @@ mean(slop200$aic_hr_err < slop200$aic_hn_err)
 
 # diff (error in radius predction) currently in centimetres so convert to metres
 print(head(predval$diff))
-predval$diff <- predval$diff/100
+predval$diff <- predval$diff
 
 
 # PART 1: Data Preparation
@@ -303,7 +372,6 @@ speeds_err_500_updated <- t(as.matrix(hh_speeds_err_500_df))
 
 # read in speed vals
 seqdat_try_updated <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/seqdat_try_hh.csv")
-
 
 
 # PART 3: Visualisation and True Speed Calculation
@@ -520,13 +588,6 @@ print(summary_updated <- summary(lm_updated))
 # ###############################################################################################################################################
 
 
-# Original error propagation method
-plot1 <- ggplot(data = data.frame(speed = speeds_err_500), aes(x = "500_rep", y = speed)) +
-  geom_boxplot(fill = "skyblue") +
-  geom_hline(yintercept = truespeed, linetype = "dashed", colour = "red", size = 1) +
-  ylim(c(min(truespeed, 0.01), max(speeds_err_500, na.rm = TRUE))) +
-  labs(x = "", y = "Estimated speed (m/s)", title = "Original Method") +
-  theme_minimal()
 
 # Updated error propagation method
 plot2 <- ggplot(data = data.frame(speed = speeds_err_500_updated), aes(x = "500_rep_updated", y = speed)) +
@@ -535,9 +596,107 @@ plot2 <- ggplot(data = data.frame(speed = speeds_err_500_updated), aes(x = "500_
   labs(x = "", y = "Estimated speed (m/s)", title = "Updated Method") +
   theme_minimal()
 
-# arrange plots
-grid.arrange(plot1, plot2, ncol = 2)
+plot2
 
+
+
+
+# ###############################################################################################################################################
+#                           Relative speed & speed error plot - updated method 
+# ###############################################################################################################################################
+
+
+# seqdat_try_updated has the values you need 
+
+
+
+
+# ##############################################
+#       Scatter plot with error as error bars
+# ##############################################
+
+
+library(ggplot2)
+
+# Filter the dataset for the range and create ordered sample
+seqdat_filtered <- seqdat_try_updated %>% filter(pixdiff >= 10 & pixdiff <= 1500)
+seqdat_ordered <- seqdat_filtered %>% arrange(pixdiff)
+sample_data <- seqdat_ordered[seq(1, nrow(seqdat_ordered), by = 30), ]
+
+# Create the scatter plot with log scales
+ggplot(sample_data, aes(x = pixdiff, y = speed)) +
+  geom_point(color = "blue", size = 3) +  # Scatter points
+  geom_errorbar(aes(ymin = pmax(speed - speed_err, 0.001), ymax = speed + speed_err), 
+                width = 0.1, color = "blue", alpha = 0.7) +  # Error bars
+  scale_x_log10() +  # Log scale for x-axis
+  scale_y_log10() +  # Log scale for y-axis
+  labs(title = "Sample of simulated speed values vs pixel diff, with speed error as error bars",
+       x = "Pixel Difference",
+       y = "Speed (m/s)") +
+  theme_minimal()
+
+
+
+
+
+# ######################################################################
+# Scatter plot with speed as one colour point and err as another 
+# ######################################################################
+
+#### UPDATED ERROR PROPAGATION METHOD 
+
+sample_data <- seqdat_try_updated
+
+par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))  # Set up the plotting area and space for a shared title
+
+# Plot for Speed
+plot(
+  sample_data$pixdiff, sample_data$speed,
+  log = "xy", pch = 16, col = "blue", cex = 1.5,  # Increased point size with cex
+  xlab = "Pixel Difference", ylab = "Speed (m/s)",
+  main = "Speed"
+)
+
+# Plot for Speed Error
+plot(
+  sample_data$pixdiff, sample_data$speed_err,
+  log = "xy", pch = 17, col = "red", cex = 1.5,  # Increased point size with cex
+  xlab = "Pixel Difference", ylab = "Speed Error (m/s)",
+  main = "Speed Error"
+)
+
+# Add a shared title
+mtext(
+  "UPDATED - Simulated Speed and Speed Error", outer = TRUE, cex = 1.5, font = 2  # cex controls title size
+)
+
+
+
+#### ORIGINAL ERROR PROPAGATION METHOD 
+sample_data_try <- seqdat_try
+
+par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))  # Set up the plotting area and space for a shared title
+
+# Plot for Speed
+plot(
+  sample_data_try$pixdiff, sample_data_try$speed,
+  log = "xy", pch = 16, col = "blue", cex = 1.5,  # Increased point size with cex
+  xlab = "Pixel Difference", ylab = "Speed (m/s)",
+  main = "Speed"
+)
+
+# Plot for Speed Error
+plot(
+  sample_data_try$pixdiff, sample_data_try$speed_err,
+  log = "xy", pch = 17, col = "red", cex = 1.5,  # Increased point size with cex
+  xlab = "Pixel Difference", ylab = "Speed Error (m/s)",
+  main = "Speed Error"
+)
+
+# Add a shared title
+mtext(
+  "ORIGINAL - Simulated Speed and Speed Error", outer = TRUE, cex = 1.5, font = 2  # cex controls title size
+)
 
 
 
