@@ -1,4 +1,3 @@
-
 ### Packages
 install_and_load <- function(package_name) {
   if (!require(package_name, character.only = TRUE)) {
@@ -14,7 +13,7 @@ invisible(lapply(packages, install_and_load))
 
 devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/distanceDF/master/distancedf.r")
 devtools::source_url("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/CTtracking_err.r")
-source("hmean.r")
+source("https://raw.githubusercontent.com/MarcusRowcliffe/sbd/main/R/hmean.r")
 
 
 ##############################################################################
@@ -300,7 +299,7 @@ mean(slop200$aic_hr_err < slop200$aic_hn_err)
 
 
 # ##############################################################################################################################################################
-# ######################################################## UPDATED: Speed simulation function ##################################################################
+# ######################################################## Speed simulation function : Hampstead Heath data ##################################################################
 
 # The original script introduced errors at both deployment-level and observational-level. Here, we amend the original to replace observational-level errors with
 # sequence-level errors (seq_error_updated): a shared error term for all observations within the same sequence. This reflects real-world scenarios where 
@@ -310,6 +309,8 @@ mean(slop200$aic_hr_err < slop200$aic_hn_err)
 # diff (error in radius predction) currently in centimetres so convert to metres
 print(head(predval$diff))
 predval$diff <- predval$diff
+
+
 
 
 # PART 1: Data Preparation
@@ -337,9 +338,15 @@ seqdat1_updated <- subset(seqdat_updated, seqdat_updated$timediff < 2000)
 avgpixdif_updated <- 400
 pixdiff_updated <- seq.data(posdat_mov_updated)$pixdiff
 
+
+
+summary(predval$diff)
+print(depsd_updated)  # Hampstead Heath
+
+
 # PART 2: Update the error propagation and generate speeds
 
-### Option 1: Run the simulation from scratch
+# ## Option 1: Run the simulation from scratch
 # speeds_err_500_updated <- pbreplicate(500, {
 #   dep_error_updated <- rnorm(length(deps_updated), depmn_updated, depsd_updated) * 0.01
 #   seq_error_updated <- rnorm(length(unique(posdat_mov_updated$sequence_id)), mean = 0, sd = 0.1)
@@ -697,8 +704,6 @@ plot(
 mtext(
   "ORIGINAL - Simulated Speed and Speed Error", outer = TRUE, cex = 1.5, font = 2  # cex controls title size
 )
-
-
 
 
 
