@@ -14,6 +14,8 @@ invisible(lapply(packages, install_and_load))
 
 devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/distanceDF/master/distancedf.r")
 devtools::source_url("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/CTtracking_err.r")
+source("https://raw.githubusercontent.com/MarcusRowcliffe/sbd/main/R/hmean.r")
+
 
 
 ##############################################################################
@@ -21,6 +23,14 @@ devtools::source_url("https://raw.githubusercontent.com/nilanjanchatterjee/camca
 predval <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/camera_deployment_validation_.csv")
 Hoge <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HogeVeluwe/HogeVeluweDigidat.csv")
 posdat_mov <-read.csv("https://raw.githubusercontent.com/nilanjanchatterjee/camcal_validation/main/Speed_seq_data.csv")
+
+#### Option 2: Read in data from "Realistic" scneario for comparison at a later date. 
+flat50 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/flat50.csv")
+flat100 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/flat100.csv")
+flat200 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/flat200.csv")
+slop50 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/slop50.csv")
+slop100 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/slop100.csv")
+slop200 <- read.csv("https://raw.githubusercontent.com/harryjobann/camcal_validation_2025/refs/heads/main/HampsteadHeath/Simulated_data/slop200.csv")
 
 
 
@@ -202,52 +212,138 @@ predval$distance <- predval$distance/100
 predval$diff <- predval$diff/100
 
 
-# Add labels
-predval$Dataset <- "Realistic Scenario"
-filtered_distance_predictions$Dataset <- "Controlled Scenario"
 
-# Selectcolumns and combine 
+# Add labels
+predval$Dataset <- "Hampstead Heath"
+filtered_distance_predictions$Dataset <- "Hoge Veluwe"
+
+# Select columns and combine 
 hh_data <- predval %>% dplyr::select(distance, radius, Dataset)
 hv_data <- filtered_distance_predictions %>% dplyr::select(distance, radius, Dataset)
 combined_data <- dplyr::bind_rows(hh_data, hv_data)
+
+
+##########################################################################################
+#### Exploring the distance data 
+
+head(combined_data)
+combined_data$error <- combined_data$radius - combined_data$distance
+summary(combined_data)
+
+ggplot(combined_data, aes(x = error, fill = Dataset)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Error Distribution in Distance Estimation",
+       x = "Error (Radius - Distance)",
+       y = "Density") +
+  theme_minimal()
+
+
+
+combined_data %>%
+  dplyr::group_by(Dataset) %>%
+  dplyr::summarise(
+    Mean_Error = mean(error, na.rm = TRUE),
+    SD_Error = sd(error, na.rm = TRUE),
+    Min_Error = min(error, na.rm = TRUE),
+    Max_Error = max(error, na.rm = TRUE),
+    Median_Error = median(error, na.rm = TRUE),
+    Q1_Error = quantile(error, 0.25, na.rm = TRUE),
+    Q3_Error = quantile(error, 0.75, na.rm = TRUE)
+  )
+
+
+##########################################################################################
+
+
+
 
 
 # Add R-squared values
 r2_hh <- summary(lm(radius ~ distance, data = hh_data))$r.squared
 r2_hv <- summary(lm(radius ~ distance, data = hv_data))$r.squared
 
+print(r2_hh)
+print(r2_hv)
 
+### Figure 3: scatter plots comparing object distances predicted by different models 
 
 ggplot(combined_data, aes(x = distance, y = radius, colour = Dataset)) +
   geom_point(alpha = 0.8) +
   geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~Dataset, labeller = labeller(Dataset = c("Controlled Scenario" = "Controlled Scenario", 
-                                                       "Realistic Scenario" = "Realistic Scenario"))) +
+  facet_wrap(~Dataset, labeller = labeller(Dataset = c("Hoge Veluwe" = "Hoge Veluwe", 
+                                                       "Hampstead Heath" = "Hampstead Heath"))) +
   labs(
     x = "Actual Distance (m)",
     y = "Estimated Radius (m)"
   ) +
-  scale_colour_manual(values = c("Controlled Scenario" = "skyblue", "Realistic Scenario" = "orange")) +
+  scale_colour_manual(values = c("Hoge Veluwe" = "skyblue", "Hampstead Heath" = "orange")) +
   theme_minimal() +
   theme(
-    strip.text = element_text(size = 28, face = "bold"),  # Larger and bold facet titles
+    strip.text = element_text(size = 28, face = "bold"),
     axis.text.x = element_text(size = 18, angle = 0, hjust = 0.5),
     axis.text.y = element_text(size = 18),
     axis.title = element_text(size = 30),
-    legend.title = element_text(size = 24),
-    legend.text = element_text(size = 20),
-    legend.position = c(0.85, 0.8)  # Moves legend inside the plot (top-right corner)
+    legend.position = "none",  # Removes legend
+    plot.margin = margin(10, 10, 10, 10)
   ) +
-  guides(colour = guide_legend(title = "Scenario")) +
-  geom_text(data = data.frame(Dataset = c("Realistic Scenario", "Controlled Scenario"),
-                              x = c(5, 5),  # Standardised x position
-                              y = c(15, 15),  # Standardised y position
+  coord_equal() +  # Equal axis scales
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "black") +  # x=y line
+  geom_text(data = data.frame(Dataset = c("Hampstead Heath", "Hoge Veluwe"),
+                              x = c(5, 5),
+                              y = c(15, 15),
                               label = c(paste0("R² = ", round(r2_hh, 2)), 
                                         paste0("R² = ", round(r2_hv, 2)))),
             aes(x = x, y = y, label = label),
             size = 6, color = "#B22222", fontface = "bold", inherit.aes = FALSE)
 
 
+# 
+# # Add labels
+# predval$Dataset <- "Realistic Scenario"
+# filtered_distance_predictions$Dataset <- "Controlled Scenario"
+# 
+# # Selectcolumns and combine 
+# hh_data <- predval %>% dplyr::select(distance, radius, Dataset)
+# hv_data <- filtered_distance_predictions %>% dplyr::select(distance, radius, Dataset)
+# combined_data <- dplyr::bind_rows(hh_data, hv_data)
+# 
+# 
+# # Add R-squared values
+# r2_hh <- summary(lm(radius ~ distance, data = hh_data))$r.squared
+# r2_hv <- summary(lm(radius ~ distance, data = hv_data))$r.squared
+# 
+# print(r2_hh)
+# print(r2_hv)
+# ### Figure 3: scatter plots comparing object distances predicted by diff models 
+# 
+# ggplot(combined_data, aes(x = distance, y = radius, colour = Dataset)) +
+#   geom_point(alpha = 0.8) +
+#   geom_smooth(method = "lm", se = FALSE) +
+#   facet_wrap(~Dataset, labeller = labeller(Dataset = c("Controlled Scenario" = "Controlled Scenario", 
+#                                                        "Realistic Scenario" = "Realistic Scenario"))) +
+#   labs(
+#     x = "Actual Distance (m)",
+#     y = "Estimated Radius (m)"
+#   ) +
+#   scale_colour_manual(values = c("Controlled Scenario" = "skyblue", "Realistic Scenario" = "orange")) +
+#   theme_minimal() +
+#   theme(
+#     strip.text = element_text(size = 28, face = "bold"),
+#     axis.text.x = element_text(size = 18, angle = 0, hjust = 0.5),
+#     axis.text.y = element_text(size = 18),
+#     axis.title = element_text(size = 30),
+#     legend.position = "none",  # Removes legend
+#     plot.margin = margin(10, 10, 10, 10)
+#   ) +
+#   coord_equal() +  # Equal axis scales
+#   geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "black") +  # x=y line
+#   geom_text(data = data.frame(Dataset = c("Realistic Scenario", "Controlled Scenario"),
+#                               x = c(5, 5),
+#                               y = c(15, 15),
+#                               label = c(paste0("R² = ", round(r2_hh, 2)), 
+#                                         paste0("R² = ", round(r2_hv, 2)))),
+#             aes(x = x, y = y, label = label),
+#             size = 6, color = "#B22222", fontface = "bold", inherit.aes = FALSE)
 
 
 # # ##############################################################################################################################################################
@@ -386,25 +482,54 @@ mean(hoge_50$aic_hr_err < hoge_50$aic_hn_err)
 
 
 
+### Figure 4
+
+# Reduce space between plots by adjusting margins
+par(mfrow = c(1, 3), mar = c(5, 6, 4, 1), oma = c(1, 1, 1, 1), mgp = c(2.5, 1, 0), cex = 1.2)
+
+y_limits <- c(-1.5, 1.5)
+
+# Plot 1: Hoge Veluwe
 boxplot(hoge_50$diff_hn, hoge_100$diff_hn, hoge_200$diff_hn,
         hoge_50$diff_hr, hoge_100$diff_hr, hoge_200$diff_hr,
-        names=rep(c(50,100,200), 2),
-        col=rep(c("#E9967A", "#8FBC8F"), each=3),
-        xlab="Points", ylab="Error (m)", main="Controlled Scenario",
-        cex.axis=2,       
-        cex.lab=2,
-        cex.main=2) 
+        names = rep(c(50, 100, 200), 2),
+        col = rep(c("#E9967A", "#8FBC8F"), each = 3),
+        xlab = "Points", ylab = "Error (m)", main = "Hoge Veluwe",
+        cex.axis = 2.0, cex.lab = 2.0, cex.main = 2.2, ylim = y_limits)
 
-legend("topleft", c("Half normal", "Hazard rate"),
-       fill=c("#E9967A", "#8FBC8F"),
-       cex=1,            
-       title="Detection Function",
-       box.lty=0)
+# Add reference line at zero
+abline(h = 0, col = "magenta", lwd = 2)
 
-lines(c(0,7), rep(mnerr,2), col="magenta")
+# Plot 2: Hampstead Heath (Flat ground)
+boxplot(flat50$diff_hn, flat100$diff_hn, flat200$diff_hn,
+        flat50$diff_hr, flat100$diff_hr, flat200$diff_hr,
+        names = rep(c(50, 100, 200), 2),
+        col = rep(c("#E9967A", "#8FBC8F"), each = 3),
+        xlab = "Points", ylab = "Error (m)", main = "Hampstead Heath: Flat ground",
+        cex.axis = 2.0, cex.lab = 2.0, cex.main = 2.2, ylim = y_limits)
 
+legend(x = -0.75, y = -0.5, c("Half normal", "Hazard rate"),
+       fill = c("#E9967A", "#8FBC8F"),
+       cex = 1.5,  # Slightly larger legend text
+       box.lty = 0,
+       x.intersp = 0.2,
+       text.font = 2)
 
+abline(h = 0, col = "magenta", lwd = 2)
 
+# Plot 3: Hampstead Heath (Sloping ground)
+boxplot(slop50$diff_hn, slop100$diff_hn, slop200$diff_hn,
+        slop50$diff_hr, slop100$diff_hr, slop200$diff_hr,
+        names = rep(c(50, 100, 200), 2),
+        col = rep(c("#E9967A", "#8FBC8F"), each = 3),
+        xlab = "Points", ylab = "Error (m)", main = "Hampstead Heath: Sloping ground",
+        cex.axis = 2.0, cex.lab = 2.0, cex.main = 2.2, ylim = y_limits)
+
+# Add reference line at zero
+abline(h = 0, col = "magenta", lwd = 2)
+
+# Reset layout
+par(mfrow = c(1, 1))
 
 
 ##############################################################################
@@ -471,11 +596,19 @@ focused_results$Type_Dataset <- factor(paste(focused_results$Type, focused_resul
                                        levels = c("True Controlled Scenario", "Error Controlled Scenario",
                                                   "True Realistic Scenario", "Error Realistic Scenario"))
 
-# Plot
+
+#### Figure 5
+
+
+# Update the Dataset column in focused_results
+focused_results$Dataset <- ifelse(focused_results$Dataset == "Controlled Scenario", "Hoge Veluwe", "Hampstead Heath")
+
+
+
 ggplot(focused_results, aes(x = Type_Dataset, y = Radius, fill = Dataset)) +
   geom_boxplot(outlier.size = 1.5, alpha = 0.8, position = position_dodge(width = 0.8)) +
   scale_x_discrete(labels = c("True", "Error", "True", "Error")) +
-  scale_fill_manual(values = c("Controlled Scenario" = "skyblue", "Realistic Scenario" = "orange")) +
+  scale_fill_manual(values = c("Hoge Veluwe" = "skyblue", "Hampstead Heath" = "orange")) +
   labs(
     title = "Impact of Error on Estimated Effective Radius",
     x = "Estimate Type",
@@ -483,19 +616,18 @@ ggplot(focused_results, aes(x = Type_Dataset, y = Radius, fill = Dataset)) +
   ) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 18, angle = 0, hjust = 0.5),
+    axis.text.x = element_text(size = 20, angle = 0, hjust = 0.5),
+    axis.text.y = element_text(size = 20),
     axis.title = element_text(size = 30),
     plot.title = element_text(size = 30, hjust = 0.5),
     legend.title = element_text(size = 24),
     legend.text = element_text(size = 20),
-    legend.position = c(0.85, 0.7)
+    legend.position = c(0.9, 0.78)
   ) +
-  guides(fill = guide_legend(title = "Scenario")) +
+  guides(fill = guide_legend(title = "Dataset")) +
   geom_text(data = text_labels, 
-            aes(x = X_Pos, y = 12.5, label = Label), 
-            size = 5, color = "#B22222", fontface = "bold", parse = FALSE)
-
-
+            aes(x = X_Pos, y = 14.5, label = Label), 
+            size = 7, color = "#B22222", fontface = "bold", parse = FALSE)
 
 
 # get summary of the two methods
@@ -588,6 +720,17 @@ seqdat1_updated <- subset(seqdat_updated, seqdat_updated$timediff < 2000)
 avgpixdif_updated <- 400
 pixdiff_updated <- seq.data(posdat_mov_updated)$pixdiff
 
+
+
+### CHecking correlation in error 
+summary(filtered_distance_predictions$error)
+print(depsd_updated)
+
+cor.test(filtered_distance_predictions$error[-1], filtered_distance_predictions$error[-length(filtered_distance_predictions$error)])
+cor.test(predval$diff[-1], predval$diff[-length(predval$diff)])
+
+
+
 # # PART 2: Update the error propagation and speed generation with correlated errors
 
 # ### Option 1: Run the simulation from scratch
@@ -629,6 +772,12 @@ speeds_err_500_matrix <- t(as.matrix(speeds_err_500_df))
 # PART 3: Visualisation and True Speed Calculation
 trspd_updated <- 1 / seqdat1_updated$speed[is.finite(seqdat1_updated$speed) & seqdat1_updated$pixdiff > 10]
 truespeed_updated <- 1 / mean(trspd_updated[is.finite(trspd_updated)])
+hmean_trspd <- hmean(seqdat1_updated$speed[is.finite(seqdat1_updated$speed) & 
+                                             seqdat1_updated$speed > 0 & 
+                                             seqdat1_updated$pixdiff > 10])
+
+
+
 
 par(mfrow = c(1, 2))
 plot(seqdat_try_updated$pixdiff, seqdat_try_updated$speed, log = "xy", xlab = "Pixel difference", ylab = "Speed")
@@ -653,7 +802,10 @@ hh_speeds_err_500_df <- read.csv(
 # rename dutch data
 dutch_speeds_err_500_df <- speeds_err_500_df
 
-# prep data for plot
+
+### Figure 6 
+
+# Prep data for plot
 dutch_speeds_err_500_matrix <- speeds_err_500_matrix
 hh_speeds_err_500_matrix <- t(as.matrix(hh_speeds_err_500_df))
 
@@ -662,15 +814,54 @@ combined_data <- list(
   "HH" = as.vector(hh_speeds_err_500_matrix)
 )
 
+
+
+
+
 df <- data.frame(
   Scenario = rep(c("Controlled Scenario", "Realistic Scenario"), each = length(combined_data[[1]])),
   Speed = c(combined_data[[1]], combined_data[[2]])
 )
 
-# comparison plot speeds
+# Rename scenarios
+df <- df %>%
+  mutate(Scenario = recode(Scenario, 
+                           "Controlled Scenario" = "Hoge Veluwe", 
+                           "Realistic Scenario" = "Hampstead Heath"))
+
+##########################################################################################
+#### Exploring the speed data
+summary(df)
+
+library(dplyr)
+
+# Compute summary statistics for speed
+speed_summary <- df %>%
+  group_by(Scenario) %>%
+  summarise(
+    Mean_Speed = mean(Speed, na.rm = TRUE),
+    SD_Speed = sd(Speed, na.rm = TRUE),
+    Min_Speed = min(Speed, na.rm = TRUE),
+    Q1_Speed = quantile(Speed, 0.25, na.rm = TRUE),
+    Median_Speed = median(Speed, na.rm = TRUE),
+    Q3_Speed = quantile(Speed, 0.75, na.rm = TRUE),
+    Max_Speed = max(Speed, na.rm = TRUE)
+  )
+
+# Print results
+print(speed_summary)
+
+
+
+
+##########################################################################################
+
+
+
+# Comparison plot speeds
 ggplot(df, aes(x = Scenario, y = Speed, fill = Scenario)) +
   geom_boxplot(outlier.size = 1.5, alpha = 0.8, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = c("Controlled Scenario" = "skyblue", "Realistic Scenario" = "orange")) +
+  scale_fill_manual(values = c("Hoge Veluwe" = "skyblue", "Hampstead Heath" = "orange")) +
   labs(
     title = "Comparison of Speed Estimation Errors",
     x = "",
@@ -678,7 +869,8 @@ ggplot(df, aes(x = Scenario, y = Speed, fill = Scenario)) +
   ) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 18, angle = 0, hjust = 0.5),
+    axis.text.x = element_text(size = 22, angle = 0, hjust = 0.5),  # Increased size
+    axis.text.y = element_text(size = 22),  # Increased y-axis label size
     axis.title = element_text(size = 30),
     plot.title = element_text(size = 30, hjust = 0.5),
     legend.title = element_text(size = 24),
@@ -689,8 +881,6 @@ ggplot(df, aes(x = Scenario, y = Speed, fill = Scenario)) +
   geom_hline(yintercept = truespeed_updated, linetype = "dashed", color = "red", size = 1.5)
 
 
-# Add reference line for true speed
-abline(h = truespeed_updated, lwd = 2, col = "red")
 
 
 # Convert the data frames to matrices and vectors
@@ -716,6 +906,7 @@ print(summary_stats)
 
 # Results very similar between Dutch and HH datasets. The mean simulated speeds are close to the true speed for both approaches & 
 # the differences seem very marginal. 
+
 
 
 
