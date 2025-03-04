@@ -1,3 +1,4 @@
+
 ### Packages
 install_and_load <- function(package_name) {
   if (!require(package_name, character.only = TRUE)) {
@@ -608,102 +609,6 @@ plot2
 
 
 
-# ###############################################################################################################################################
-#                           Relative speed & speed error plot - updated method 
-# ###############################################################################################################################################
-
-
-# seqdat_try_updated has the values you need 
-
-
-
-
-# ##############################################
-#       Scatter plot with error as error bars
-# ##############################################
-
-
-library(ggplot2)
-
-# Filter the dataset for the range and create ordered sample
-seqdat_filtered <- seqdat_try_updated %>% filter(pixdiff >= 10 & pixdiff <= 1500)
-seqdat_ordered <- seqdat_filtered %>% arrange(pixdiff)
-sample_data <- seqdat_ordered[seq(1, nrow(seqdat_ordered), by = 30), ]
-
-# Create the scatter plot with log scales
-ggplot(sample_data, aes(x = pixdiff, y = speed)) +
-  geom_point(color = "blue", size = 3) +  # Scatter points
-  geom_errorbar(aes(ymin = pmax(speed - speed_err, 0.001), ymax = speed + speed_err), 
-                width = 0.1, color = "blue", alpha = 0.7) +  # Error bars
-  scale_x_log10() +  # Log scale for x-axis
-  scale_y_log10() +  # Log scale for y-axis
-  labs(title = "Sample of simulated speed values vs pixel diff, with speed error as error bars",
-       x = "Pixel Difference",
-       y = "Speed (m/s)") +
-  theme_minimal()
-
-
-
-
-
-# ######################################################################
-# Scatter plot with speed as one colour point and err as another 
-# ######################################################################
-
-#### UPDATED ERROR PROPAGATION METHOD 
-
-sample_data <- seqdat_try_updated
-
-par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))  # Set up the plotting area and space for a shared title
-
-# Plot for Speed
-plot(
-  sample_data$pixdiff, sample_data$speed,
-  log = "xy", pch = 16, col = "blue", cex = 1.5,  # Increased point size with cex
-  xlab = "Pixel Difference", ylab = "Speed (m/s)",
-  main = "Speed"
-)
-
-# Plot for Speed Error
-plot(
-  sample_data$pixdiff, sample_data$speed_err,
-  log = "xy", pch = 17, col = "red", cex = 1.5,  # Increased point size with cex
-  xlab = "Pixel Difference", ylab = "Speed Error (m/s)",
-  main = "Speed Error"
-)
-
-# Add a shared title
-mtext(
-  "UPDATED - Simulated Speed and Speed Error", outer = TRUE, cex = 1.5, font = 2  # cex controls title size
-)
-
-
-
-#### ORIGINAL ERROR PROPAGATION METHOD 
-sample_data_try <- seqdat_try
-
-par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))  # Set up the plotting area and space for a shared title
-
-# Plot for Speed
-plot(
-  sample_data_try$pixdiff, sample_data_try$speed,
-  log = "xy", pch = 16, col = "blue", cex = 1.5,  # Increased point size with cex
-  xlab = "Pixel Difference", ylab = "Speed (m/s)",
-  main = "Speed"
-)
-
-# Plot for Speed Error
-plot(
-  sample_data_try$pixdiff, sample_data_try$speed_err,
-  log = "xy", pch = 17, col = "red", cex = 1.5,  # Increased point size with cex
-  xlab = "Pixel Difference", ylab = "Speed Error (m/s)",
-  main = "Speed Error"
-)
-
-# Add a shared title
-mtext(
-  "ORIGINAL - Simulated Speed and Speed Error", outer = TRUE, cex = 1.5, font = 2  # cex controls title size
-)
 
 
 
