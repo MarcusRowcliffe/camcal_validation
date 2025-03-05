@@ -1,6 +1,6 @@
-devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/CTtracking/master/CTtracking.r")
+library(dplyr)
 
-dat <- read.csv("HogeVeluweDigidat.csv")
+devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/CTtracking/master/CTtracking.r")
 
 # Function for one replicate test for deployment dep
 oneRep <- function(dat, dep){
@@ -8,7 +8,9 @@ oneRep <- function(dat, dep){
   i <- sq %in% sample(sq, round(0.5*nrow(dat)))
   dmod <- cal.dep(dat[i, ], flex=FALSE)
   names(dmod) <- dep
-  dat[!i, ] %>% rename(x=xg, y=yg) %>% predict.pos(dmod, "folder")
+  dat[!i, ] %>% 
+    rename(x=xg, y=yg) %>% 
+    predict.pos(dmod, "folder")
 }
 
 # Function to train and test one deployment (dep), replicated reps times
@@ -29,3 +31,4 @@ for(i in 1:length(predictions)){
   legend("topleft", deps[i], bty="n")
   lines(lim, lim, col=2)
 }
+
